@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Networking Strategy — WAFS & BTE</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --wafs: #1B3F6E;
+    --wafs-light: #E8EEF7;
+    --wafs-accent: #2F6FC4;
+    --bte: #8B1A1A;
+    --bte-light: #F7EAEA;
+    --bte-accent: #C43030;
+    --bg: #F5F4F0;
+    --card-bg: #FFFFFF;
+    --text: #1A1A1A;
+    --muted: #6B6B6B;
+    --border: #E0DDD8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    padding: 48px 48px 0;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .header-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(32px, 5vw, 52px);
+    line-height: 1.1;
+    margin-bottom: 10px;
+    color: var(--text);
+  }
+
+  header p {
+    font-size: 15px;
+    color: var(--muted);
+    font-weight: 300;
+    margin-bottom: 40px;
+  }
+
+  /* TABS */
+  .tab-row {
+    display: flex;
+    gap: 6px;
+    padding: 0 48px;
+    max-width: 1100px;
+    margin: 0 auto 32px;
+  }
+
+  .tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 28px;
+    border: none;
+    border-radius: 100px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: var(--card-bg);
+    color: var(--muted);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    letter-spacing: 0.02em;
+  }
+
+  .tab-btn .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .tab-btn[data-tab="wafs"].active {
+    background: var(--wafs);
+    color: white;
+    box-shadow: 0 4px 16px rgba(27,63,110,0.3);
+  }
+  .tab-btn[data-tab="wafs"] .dot { background: var(--wafs-accent); }
+  .tab-btn[data-tab="wafs"].active .dot { background: rgba(255,255,255,0.6); }
+
+  .tab-btn[data-tab="bte"].active {
+    background: var(--bte);
+    color: white;
+    box-shadow: 0 4px 16px rgba(139,26,26,0.3);
+  }
+  .tab-btn[data-tab="bte"] .dot { background: var(--bte-accent); }
+  .tab-btn[data-tab="bte"].active .dot { background: rgba(255,255,255,0.6); }
+
+  .count-badge {
+    background: rgba(255,255,255,0.25);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .tab-btn:not(.active) .count-badge {
+    background: var(--border);
+    color: var(--muted);
+  }
+
+  /* PANEL */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* STATS BAR */
+  .stats-bar {
+    padding: 0 48px;
+    max-width: 1100px;
+    margin: 0 auto 28px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .stat-icon {
+    font-size: 15px;
+  }
+
+  .stat strong {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* GRID */
+  .grid {
+    padding: 0 48px 60px;
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 18px;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 26px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+  }
+
+  .wafs-panel .card::before { background: linear-gradient(90deg, var(--wafs), var(--wafs-accent)); }
+  .bte-panel .card::before { background: linear-gradient(90deg, var(--bte), var(--bte-accent)); }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    line-height: 1.25;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .cost-pill {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .cost-free { background: #E8F5E9; color: #2E7D32; }
+  .cost-low { background: #FFF8E1; color: #F57F17; }
+  .cost-paid { background: #FCE4EC; color: #AD1457; }
+
+  .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .card-desc {
+    font-size: 14px;
+    line-height: 1.65;
+    color: #444;
+    font-weight: 300;
+  }
+
+  .why-box {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+    border-left: 3px solid;
+  }
+
+  .wafs-panel .why-box { border-color: var(--wafs-accent); }
+  .bte-panel .why-box { border-color: var(--bte-accent); }
+
+  .why-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .wafs-panel .why-label { color: var(--wafs-accent); }
+  .bte-panel .why-label { color: var(--bte-accent); }
+
+  .card-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    margin-top: auto;
+    transition: gap 0.2s;
+  }
+
+  .wafs-panel .card-link { color: var(--wafs); }
+  .bte-panel .card-link { color: var(--bte); }
+
+  .card-link:hover { gap: 10px; }
+
+  .card-link svg {
+    transition: transform 0.2s;
+  }
+  .card-link:hover svg { transform: translateX(3px); }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 20px 48px;
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  @media (max-width: 600px) {
+    header, .tab-row, .grid, .stats-bar, footer { padding-left: 20px; padding-right: 20px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-label">May 2026 — Networking Plan</div>
+  <h1>Networking Strategy<br><em>Events Directory</em></h1>
+  <p>Curated events for lead generation, brand visibility, and strategic partnerships across WAFS & BTE.</p>
+</header>
+
+<div class="tab-row">
+  <button class="tab-btn active" data-tab="wafs" onclick="switchTab('wafs')">
+    <span class="dot"></span>
+    Woodson Accounting — WAFS
+    <span class="count-badge">7</span>
+  </button>
+  <button class="tab-btn" data-tab="bte" onclick="switchTab('bte')">
+    <span class="dot"></span>
+    Biz Tax Experts — BTE
+    <span class="count-badge">4</span>
+  </button>
+</div>
+
+<!-- WAFS PANEL -->
+<div id="wafs-panel" class="panel wafs-panel active">
+
+  <div class="stats-bar">
+    <div class="stat"><span class="stat-icon">📍</span> Columbia & Springfield, MO</div>
+    <div class="stat"><span class="stat-icon">📅</span> <strong>7 events</strong> selected</div>
+    <div class="stat"><span class="stat-icon">🆓</span> 4 Free / Low-cost</div>
+    <div class="stat"><span class="stat-icon">💼</span> Focus: Tax & Accounting clients</div>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Small Business Committee Meeting</div>
+        <span class="cost-pill cost-free">Free / Low</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item">📅 May 15, 2026</div>
+        <div class="meta-item">📍 Columbia Chamber</div>
+      </div>
+      <div class="card-desc">Monthly committee meeting organized by the Columbia Chamber of Commerce, focused on small business development and local economic issues.</div>
+      <div class="why-box">
+        <div class="why-label">Why attend</div>
+        Direct access to small business owners actively running companies in the area. High conversion potential for tax and accounting services — these are the exact clients WAFS targets.
+      </div>
+      <a href="https://business.comochamber.com/events/details/small-business-committee-meeting-05-15-2026-12311" target="_blank" class="card-link">
+        View Event
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Small Business of the Year Awards</div>
+        <span class="cost-pill cost-paid">Paid</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item">📅 2026</div>
+        <div class="meta-item">📍 Columbia Chamber</div>
+      </div>
+      <div class="card-desc">Annual recognition event celebrating top-performing small businesses in the Columbia area. Attended by business owners, executives, and community leaders.</div>
+      <div class="why-box">
+        <div class="why-label">Why attend</div>
+        Access to top-performing local businesses and higher-value clients. Ideal for credibility positioning — being seen in the room with award-winning businesses elevates WAFS's brand perception.
+      </div>
+      <a href="https://business.comochamber.com/events/details/small-business-of-the-year-awards-2026-12111" target="_blank" class="card-link">
+        View Event
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Women's Network – Marketing & Communications</div>
+        <span class="cost-pill cost-free">Free / Low</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item">📅 May 11, 2026</div>
+        <div class="meta-item">📍 Columbia Chamber</div>
+      </div>
+      <div class="card-desc">Committee meeting focused on marketing and communications for women in business. Brings together professionals and decision-makers from across the region.</div>
+      <div class="why-box">
+        <div class="why-label">Why attend</div>
+        Strong referral potential — these are decision-makers and professionals who influence where their companies spend money on financial services. Also great for brand-building with the women-in-business community.
+      </div>
+      <a href="https://business.comochamber.com/events/details/women-s-network-marketing-communications-committee-meeting-05-11-2026-10302" target="_blank" class="card-link">
+        View Event
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Women's Network Leadership Meeting</div>
+        <span class="cost-pill cost-free">Free / Low</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item">📅 Recurring</div>
+        <div class="meta-item">📍 Columbia Chamber</div>
+      </div>
+      <div class="card-desc">Recurring leadership-level gathering for women professionals within the Columbia Chamber network. Focused on growth, strategy, and mutual support.</div>
+      <div class="why-box">
+        <div class="why-label">Why attend</div>
+        Long-term relationship building with leadership-level professionals. Recurring format means consistent exposure and the ability to build trust over time — critical for high-value accounting clients.
+      </div>
+      <a href="https://business.comochamber.com/events/details/women-s-network-leadership-meeting-12355" target="_blank" class="card-link">
+        View Event
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">1 Million Cups</div>
+        <span class="cost-pill cost-free">Free</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item">📅 Weekly</div>
+        <div class="meta-item">📍 MO Source Link</div>
+      </div>
+      <div class="card-desc">Weekly gathering where entrepreneurs present their businesses to the community. Part of a national program supporting startup and early-stage businesses.</div>
+      <div class="why-box">
+        <div class="why-label">Why attend</div>
+        Consistent weekly pipeline opportunity. Early-stage entrepreneurs often need accounting and tax support but don't know where to start — a perfect entry point for WAFS to build relationships and offer educational value.
+      </div>
+      <a href="https://www.mosourcelink.com/event/1-million-cups-85/" target="_blank" class="card-link">
+        View Event
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Business After Hours – Springfield</div>
+        <span class="cost-pill cost-low">Low</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item">📅 May 2026</div>
+        <div class="meta-item">📍 Springfield Chamber</div>
+      </div>
+      <div class="card-desc">Evening networking event hosted by the Springfield Chamber of Commerce. Relaxed format designed for business owners to connect, share, and explore partnerships.</div>
+      <div class="why-box">
+        <div class="why-label">Why attend</div>
+        High volume lead generation in a casual environment. Business owners are in "relationship mode" at after-hours events — ideal for soft introductions and follow-up conversations about accounting needs.
+      </div>
+      <a href="https://business.springfieldchamber.com/event-calendar/Details/may-2026-business-after-hours-1446081?sourceTypeId=Website" target="_blank" class="card-link">
+        View Event
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Good Morning Springfield</div>
+        <span class="cost-pill cost-paid">Paid</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item">📅 May 2026</div>
+        <div class="meta-item">📍 Springfield Chamber</div>
+        <div class="meta-item">👥 200+ attendees</div>
+      </div>
+      <div class="card-desc">One of Springfield's largest monthly networking breakfasts, drawing 200+ business professionals from across the region. Organized by the Springfield Chamber of Commerce.</div>
+      <div class="why-box">
+        <div class="why-label">Why attend</div>
+        Best event for quick lead generation at scale. With 200+ attendees, a single morning can generate more contacts than most other events combined. High ROI for time and cost invested.
+      </div>
+      <a href="https://business.springfieldchamber.com/event-calendar/Details/good-morning-springfield-may-2026-1442166?sourceTypeId=Website" target="_blank" class="card-link">
+        View Event
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<!-- BTE PANEL -->
+<div id="bte-panel" class="panel bte-panel">
+
+  <div class="stats-bar">
+    <div class="stat"><span class="stat-icon">📍</span> St. Louis, MO</div>
+    <div class="stat"><span class="stat-icon">📅</span> <strong>4 events</strong> selected</div>
+    <div class="stat"><span class="stat-icon">🎯</span> Focus: High-ticket advisory & strategy clients</div>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">Business for the Better Conference</div>
+        <span class="cost-pill cost-paid">Paid</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item">📅 2026</div>
+        <div class="meta-item">📍 St. Louis, MO</div>
+      </div>
+      <div class="card-desc">A high-level business conference bringing together decision-makers, executives, and entrepreneurs focused on purposeful and impact-driven business growth.</div>
+      <div class="why-box">
+        <div class="why-label">Why attend</div>
+        Prime environment for BTE's strategic advisory positioning. Decision-makers at this level are looking for tax partners who think beyond compliance — exactly what BTE offers. Strong potential for high-value, long-term client relationships.
+      </div>
+      <a href="https://www.eventbrite.com/e/business-for-the-better-conference-2026-tickets-1986487285947" target="_blank" class="card-link">
+        View Event
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">AI Business Breakfast</div>
+        <span class="cost-pill cost-paid">Paid</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item">📅 2026</div>
+        <div class="meta-item">📍 St. Louis, MO</div>
+      </div>
+      <div class="card-desc">Morning networking event centered around AI, technology, and the future of business. Attracts forward-thinking entrepreneurs and business leaders exploring innovation.</div>
+      <div class="why-box">
+        <div class="why-label">Why attend</div>
+        Forward-thinking audience that values modern, strategic advisory — not just traditional tax prep. BTE's positioning around strategy and business structure aligns perfectly with this crowd. Strong for high-ticket advisory conversations.
+      </div>
+      <a href="https://www.eventbrite.com/e/ai-business-breakfast-tickets-1987319418879" target="_blank" class="card-link">
+        View Event
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">General Business Networking</div>
+        <span class="cost-pill cost-low">Low</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item">📅 2026</div>
+        <div class="meta-item">📍 St. Louis, MO</div>
+      </div>
+      <div class="card-desc">"Elevating Your Potential" — a general business networking event in St. Louis bringing together professionals and business owners from diverse industries.</div>
+      <div class="why-box">
+        <div class="why-label">Why attend</div>
+        Low-cost, mixed audience event ideal for expanding BTE's pipeline across industries. Good for discovering potential partnerships and identifying businesses that may need tax strategy and advisory services.
+      </div>
+      <a href="https://www.eventbrite.com/e/general-business-networking-elevating-your-potential-saint-louis-tickets-1984316750818" target="_blank" class="card-link">
+        View Event
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">St. Louis Business Networking Event</div>
+        <span class="cost-pill cost-low">Low</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item">📅 2026</div>
+        <div class="meta-item">📍 St. Louis, MO</div>
+      </div>
+      <div class="card-desc">A recurring business networking event in St. Louis with consistent attendance from local entrepreneurs, business owners, and professionals across sectors.</div>
+      <div class="why-box">
+        <div class="why-label">Why attend</div>
+        Consistent format means repeat exposure with the same community — relationships compound over time. Good for partnerships, referral networks, and steady pipeline building for BTE's growing client base in St. Louis.
+      </div>
+      <a href="https://www.eventbrite.com/e/st-louis-business-networking-event-registration-1986266249822" target="_blank" class="card-link">
+        View Event
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <span>WAFS & BTE — Networking Strategy · May 2026</span>
+  <span>11 events total · Columbia, Springfield & St. Louis, MO</span>
+</footer>
+
+<script>
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
+    document.getElementById(tab + '-panel').classList.add('active');
+  }
+</script>
+
+</body>
+</html>
